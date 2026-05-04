@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Guess the State by Shape</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  font-family:"Comic Sans MS",system-ui,sans-serif;
+  background:linear-gradient(135deg,#dbeafe,#fef3c7);
+  min-height:100vh;
+  margin:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+.card{
+  background:#fff;border-radius:18px;padding:20px;width:380px;
+  box-shadow:0 15px 30px rgba(0,0,0,.15);position:relative;z-index:2;
+}
+h1{text-align:center;margin:6px 0;font-size:24px}
+h2{text-align:center;margin:0;font-size:16px;color:#444}
+.map{width:100%;height:220px;margin:6px 0 12px}
+svg{width:100%;height:100%}
+.state{fill:#e5e7eb;stroke:#9ca3af;stroke-width:1}
+.hidden{fill:#f3f4f6}
+.active{fill:#60a5fa}
+.choices{display:grid;gap:10px}
+button{padding:12px;border-radius:14px;border:none;font-size:16px;background:#e0f2fe;cursor:pointer}
+button.correct{background:#22c55e;color:#fff}
+button.wrong{background:#ef4444;color:#fff}
+.next{width:100%;margin-top:12px;font-size:18px;background:#f59e0b;color:#fff}
+.progress{height:12px;border-radius:999px;background:#e5e7eb;overflow:hidden;margin-bottom:8px}
+.progress div{height:100%;background:linear-gradient(90deg,#22c55e,#3b82f6);width:0%;transition:width .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-6px)}}
+.shake{animation:shake .4s}
+.confetti{position:fixed;top:-10px;width:10px;height:10px;animation:fall 3s linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+</style>
+</head>
+
+<body>
+<div class="card" id="card">
+  <div id="app"></div>
+</div>
+
+<audio id="correctSound" src="data:audio/wav;base64,UklGRngAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVwAAAAA/////wAAAP//AAD///8AAP//AAD//v8AAP//AAD///8A"></audio>
+<audio id="wrongSound" src="data:audio/wav;base64,UklGRiAAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAA/////wAAAP//AAD///8A"></audio>
+
+<script>
+const states=[
+["Alabama","AL"],["Alaska","AK"],["Arizona","AZ"],["Arkansas","AR"],["California","CA"],
+["Colorado","CO"],["Connecticut","CT"],["Delaware","DE"],["Florida","FL"],["Georgia","GA"],
+["Hawaii","HI"],["Idaho","ID"],["Illinois","IL"],["Indiana","IN"],["Iowa","IA"],
+["Kansas","KS"],["Kentucky","KY"],["Louisiana","LA"],["Maine","ME"],["Maryland","MD"],
+["Massachusetts","MA"],["Michigan","MI"],["Minnesota","MN"],["Mississippi","MS"],["Missouri","MO"],
+["Montana","MT"],["Nebraska","NE"],["Nevada","NV"],["New Hampshire","NH"],["New Jersey","NJ"],
+["New Mexico","NM"],["New York","NY"],["North Carolina","NC"],["North Dakota","ND"],["Ohio","OH"],
+["Oklahoma","OK"],["Oregon","OR"],["Pennsylvania","PA"],["Rhode Island","RI"],["South Carolina","SC"],
+["South Dakota","SD"],["Tennessee","TN"],["Texas","TX"],["Utah","UT"],["Vermont","VT"],
+["Virginia","VA"],["Washington","WA"],["West Virginia","WV"],["Wisconsin","WI"],["Wyoming","WY"]
+];
+
+let i=0,score=0,selected=null,choices=[];
+const shuffle=a=>[...a].sort(()=>Math.random()-0.5);
+
+function makeChoices(correct){
+  choices=shuffle([correct,...shuffle(states.map(s=>s[0])).filter(s=>s!==correct).slice(0,3)]);
+}
+
+function mapSVG(active){
+  const svg=document.getElementById("US_MAP").outerHTML;
+  return svg.replace(/class=\"state\"/g,'class=\"state hidden\"')
+            .replace(`id=\"${active}\" class=\"state hidden\"`,`id=\"${active}\" class=\"state active\"`);
+}
+
+function render(){
+  if(i>=states.length){celebrate();
+    app.innerHTML=`<h1>🏆 Shape Master!</h1><h2>Score: ${score}/50</h2><h1>${reward()}</h1>
+    <button class=\"next\" onclick=\"restart()\">Play Again</button>`;return;}
+  const [name,abbr]=states[i];
+  if(!choices.length)makeChoices(name);
+  app.innerHTML=`
+    <div class=\"progress\"><div style=\"width:${i/50*100}%\"></div></div>
+    <h2>Which state is highlighted?</h2>
+    <div class=\"map\">${mapSVG(abbr)}</div>
+    <div class=\"choices\">${choices.map(c=>`
+      <button onclick=\"pick('${c}')\" class=\"${selected?(c===name?'correct':c===selected?'wrong':''):''}\">${c}</button>`).join('')}
+    </div>
+    ${selected?'<button class=\"next\" onclick=\"next()\">Next →</button>':''}`}
+
+function pick(v){
+  if(selected)return;selected=v;
+  if(v===states[i][0]){score++;correctSound.play();}
+  else{wrongSound.play();card.classList.add('shake');setTimeout(()=>card.classList.remove('shake'),400)}
+  render();
+}
+function next(){i++;selected=null;choices=[];render()}
+function restart(){i=0;score=0;selected=null;choices=[];render()}
+function reward(){const p=score/50;return p>.9?'🌟 Geography Superstar!':p>.75?'🎉 State Star!':p>.5?'👍 Nice Work!':'💪 Keep Practicing!'}
+function celebrate(){for(let i=0;i<80;i++){const c=document.createElement('div');c.className='confetti';
+c.style.left=Math.random()*100+'vw';c.style.backgroundColor=`hsl(${Math.random()*360},90%,60%)`;
+document.body.appendChild(c);setTimeout(()=>c.remove(),3000)}}
+render();
+</script>
+
+<!-- US STATES SVG GOES BELOW -->
+<object id="US_MAP" type="image/svg+xml" data="us-states.svg" style="display:none;"></object>
+
+</body>
+</html>
