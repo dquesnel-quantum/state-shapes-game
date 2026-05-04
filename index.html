@@ -198,58 +198,31 @@ function makeChoices(correctName) {
 
 function renderMap(activeAbbr) {
   const svg = document.getElementById("US_MAP").cloneNode(true);
+  const code = activeAbbr.toLowerCase();
 
-  // hide all
-  svg.querySelectorAll("path").forEach(p => {
-    p.classList.add("hidden");
+  // Only paths that represent states:
+  const statePaths = Array.from(svg.querySelectorAll("path")).filter(p =>
+    p.classList.length === 1 || p.classList.contains("state")
+  );
+
+  // Hide only state shapes
+  statePaths.forEach(p => {
     p.classList.remove("active");
+    p.classList.add("hidden");
   });
 
-  // show target
+  // Activate correct state (supports .ca OR .state.ca)
   const target =
-    svg.querySelector(`.state.${activeAbbr}`) ||
-    svg.querySelector(`.${activeAbbr}`);
+    statePaths.find(p => p.classList.contains(code));
 
   if (target) {
     target.classList.remove("hidden");
     target.classList.add("active");
   } else {
-    console.warn("State not found in SVG:", activeAbbr);
+    console.warn("State not found:", code);
   }
 
   return svg.outerHTML;
-}
-
-function render() {
-  const app = document.getElementById("app");
-  const progressPct = Math.round((index / states.length) * 100);
-
-  if (index >= states.length) {
-    celebrate();
-    app.innerHTML = `
-      <h1>🏆 You Did It!</h1>
-      <h2>Score: ${score} / ${states.length}</h2>
-      <h1>${reward()}</h1>
-      <button class="next" onclick="restart()">Play Again</button>
-    `;
-    return;
-  }
-
-  const [name, abbr] = states[index];
-  if (!choices.length) makeChoices(name);
-
-  app.innerHTML = `
-    <div class="progress"><div style="width:${progressPct}%"></div></div>
-    <h2>Which state is highlighted?</h2>
-    <div class="map">${renderMap(abbr)}</div>
-    <div class="choices">
-      ${choices.map(c => `
-        <button class="${selected ? (c === name ? "correct" : c === selected ? "wrong" : "") : ""}"
-          onclick="pick('${c}')">${c}</button>
-      `).join("")}
-    </div>
-    ${selected ? '<button class="next" onclick="next()">Next →</button>' : ""}
-  `;
 }
 
 function pick(choice) {
